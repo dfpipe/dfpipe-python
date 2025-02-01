@@ -17,4 +17,21 @@ setup(
         'Operating System :: OS Independent',
     ],
     python_requires='>=3.6',
+    tests_require=[
+        'pytest',
+        'requests',
+        'tqdm',
+        'pandas',
+        'numpy',
+        'matplotlib',
+        'seaborn',
+        'scikit-learn',
+    ],
+    requires=[
+        'requests',
+        'tqdm',
+        'pandas',
+        'numpy',
+        'matplotlib',
+    ],
 ) 
