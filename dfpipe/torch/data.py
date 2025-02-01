@@ -17,6 +17,13 @@ class DFDataset(torch.utils.data.Dataset):
     """
 
     @staticmethod
+    def image_path_y_dataset(df, image_transform=None):
+        # warning: this function by default assumes the image is RBG format
+        assert 'image_path' in df.columns, "df must have a 'image_path' column"
+        assert 'y' in df.columns, "df must have a 'y' column"
+        return DFDataset(df, {'image_path': lambda x: image_transform(Image.open(x).convert('RGB'))})
+
+    @staticmethod
     def url_y_dataset(df, image_transform=None):
         assert 'url' in df.columns, "df must have a 'url' column"
         assert 'y' in df.columns, "df must have a 'y' column"
