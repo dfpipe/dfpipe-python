@@ -26,6 +26,7 @@ setup(
         'matplotlib',
         'seaborn',
         'scikit-learn',
+        'pytest-benchmark',
     ],
     requires=[
         'requests',
