@@ -1,12 +1,62 @@
 # this package requires torch and torchvision
-
-
 import torch
 from torch import nn
 import time
 from torch.utils.data import DataLoader, Dataset
 from sklearn.model_selection import train_test_split
 from dfpipe.torch.ext import TorchBatchDivideAndConquer
+from tqdm import tqdm
+
+class TorchModelTrainer:
+    def fit(self, model_parameters, forward_function, ds, epoch_num=10, optimizer_name='adamw', device='cuda:0', loss_name='cross_entropy', epoch_end_callback=None) -> dict:
+        # return a dictionary of metrics
+        
+        if optimizer_name == 'adamw':
+            optimizer = torch.optim.AdamW(model_parameters, lr=1e-3)
+        elif optimizer_name == 'adam':
+            optimizer = torch.optim.Adam(model_parameters, lr=1e-3)
+        elif optimizer_name == 'sgd':
+            optimizer = torch.optim.SGD(model_parameters, lr=1e-3)
+        else:
+            raise ValueError(f"Unsupported optimizer: {optimizer_name}")
+        print('optimizer: ', optimizer)
+
+        if loss_name == 'cross_entropy':
+            loss_function = nn.CrossEntropyLoss()
+        else:
+            raise ValueError(f"Unsupported loss: {loss_name}")
+
+        dataloader = torch.utils.data.DataLoader(ds, batch_size=128, shuffle=True, num_workers=4)
+        metrics = {
+            'epoch': [],
+            'loss': {},
+            'batch_accuracy': {},
+        }
+        for epoch in range(epoch_num):
+            metrics['epoch'].append(epoch)
+            for batch in tqdm(dataloader, desc=f'training for epoch {epoch} '):
+                x = batch['x'].to(device)
+                y = batch['y'].to(device)
+                optimizer.zero_grad()
+                y_pred = forward_function(x)
+                if loss_name == 'cross_entropy':
+                    loss = loss_function(y_pred, y)
+                    batch_accuracy = (y_pred.argmax(dim=1) == y).float().mean().item()
+                    metrics['batch_accuracy'].setdefault(epoch, []).append(batch_accuracy)
+                    metrics['loss'].setdefault(epoch, []).append(loss.item())
+                else:
+                    raise ValueError(f"Unsupported loss: {loss_name}")
+                loss.backward()
+                optimizer.step()
+            if epoch_end_callback is not None:
+                try:
+                    epoch_end_callback(metrics=metrics)
+                except Exception as e:
+                    print(f'warning: epoch_end_callback failed at epoch {epoch}: {e}')
+                    print(e)
+                    print('continue training...')
+        return metrics
+
 
 class SimpleDataframeDataset(Dataset):
     ### The __getitem__ method returns a dictionary with 'input' and 'label' keys

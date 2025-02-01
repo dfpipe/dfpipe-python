@@ -5,14 +5,34 @@ from dfpipe.remote import RemoteContent
 from io import BytesIO
 
 
+
 class DFDataset(torch.utils.data.Dataset):
+    """
+    examples:
+    df.columns = ['url', 'y']
+    ds = DFDataset.url_y_dataset(df, image_transform=lambda x: x.size) -> read url 
+    
+    df.columns = ['x', 'y']
+    ds = DFDataset(df)
+    """
+
     @staticmethod
     def url_y_dataset(df, image_transform=None):
         assert 'url' in df.columns, "df must have a 'url' column"
         assert 'y' in df.columns, "df must have a 'y' column"
         return DFDataset(df, {'url': ImageUrlTransform(transform=image_transform)})
 
-    def __init__(self, df, data_transform: dict):
+    @staticmethod
+    def xy_dataset(df):
+        assert 'x' in df.columns, "df must have a 'x' column"
+        assert 'y' in df.columns, "df must have a 'y' column"
+        if not isinstance(df.iloc[0]['y'], int):
+            df['y'] = df['y'].astype(int)
+            print('warning: y is not an integer, try to convert it to an integer, top 5 rows of y: ', df['y'].head())
+        df['x'] = df['x'].apply(lambda x: torch.tensor(x))
+        return DFDataset(df)
+
+    def __init__(self, df, data_transform: dict={}):
         self.df = df
         self.data_transform = data_transform
 
